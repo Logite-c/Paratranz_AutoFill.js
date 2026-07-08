@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Paratranz HOI4 Auto-Filler
 // @namespace    http://tampermonkey.net/
-// @version      1.6
+// @version      1.6.2
 // @downloadURL  https://raw.githubusercontent.com/Logite-c/Paratranz_AutoFill.js/refs/heads/main/Autofill.js
 // @updateURL    https://raw.githubusercontent.com/Logite-c/Paratranz_AutoFill.js/refs/heads/main/Autofill.js
 // @description  Paratranz에서 HOI4 번역 시 사전 번역 데이터를 자동 입력합니다. (상하 접기 + 다국어 자동 감지 + 안정성 및 유지보수성 개선)
