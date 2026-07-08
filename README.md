@@ -1,5 +1,7 @@
 # Paratranz Autofill Script
 
+JS Link : https://raw.githubusercontent.com/Logite-c/Paratranz_AutoFill.js/refs/heads/main/Autofill.js
+
 (한국어 설명은 문서 하단에 있습니다.)
 
 This script is designed to support translation for Hearts of Iron IV (HOI4) on the Paratranz platform, and can also be used for other games or similar web applications.
