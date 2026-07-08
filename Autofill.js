@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Paratranz HOI4 Auto-Filler
 // @namespace    http://tampermonkey.net/
-// @version      1.8.2
+// @version      1.9
 // @downloadURL  https://raw.githubusercontent.com/Logite-c/Paratranz_AutoFill.js/refs/heads/main/Autofill.js
 // @updateURL    https://raw.githubusercontent.com/Logite-c/Paratranz_AutoFill.js/refs/heads/main/Autofill.js
 // @description  Paratranz에서 HOI4 번역 시 사전 번역 데이터를 자동 입력합니다. (상하 접기 + 다국어 자동 감지 + 안정성 및 유지보수성 개선)
@@ -169,6 +169,7 @@
         const isCollapsed = panel.classList.contains('collapsed');
         btnTogglePanel.innerText = isCollapsed ? t.expand : t.collapse;
         panel.style.background = isCollapsed ? 'rgba(44, 62, 80, 0.8)' : 'rgba(44, 62, 80, 0.5)';
+        localStorage.setItem('isPanelCollapsed', isCollapsed);
     };
 
     btnLoad.onclick = () => { modal.style.display = 'flex'; };
@@ -176,6 +177,7 @@
 
     toggleAutoFill.onchange = (e) => {
         isAutoFillOn = e.target.checked;
+        localStorage.setItem('isAutoFillOn', isAutoFillOn);
         if (!isAutoFillOn) lastCheckedKey = "";
     };
 
@@ -274,7 +276,25 @@
         subtree: true
     });
 
+    // 7. 페이지 로드 시 설정 불러오기
+    function loadSettings() {
+        const savedCollapsed = localStorage.getItem('isPanelCollapsed') === 'true';
+        const savedAutoFill = localStorage.getItem('isAutoFillOn') === 'true';
+
+        // 패널 접힘 상태 적용
+        if (savedCollapsed) {
+            panel.classList.add('collapsed');
+            btnTogglePanel.innerText = t.expand;
+            panel.style.background = 'rgba(44, 62, 80, 0.8)';
+        }
+
+        // 자동 채우기 상태 적용
+        isAutoFillOn = savedAutoFill;
+        toggleAutoFill.checked = isAutoFillOn;
+    }
+
     // 스크립트가 로드된 시점에 이미 번역창이 있을 수 있으므로 초기에 한 번 실행합니다.
+    loadSettings();
     handleTranslation();
 
 })();
