@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Paratranz HOI4 Auto-Filler (IndexedDB)
+// @name         Paratranz HOI4 Auto-Filler
 // @namespace    http://tampermonkey.net/
 // @version      1.5
 // @description  Paratranz에서 HOI4 번역 시 사전 번역 데이터를 자동 입력합니다. (상하 접기 + 다국어 자동 감지 + 안정성 및 유지보수성 개선)
@@ -24,13 +24,14 @@
             modalDesc: 'YML 파일의 l_english 같은 언어 선언부나 :0 등의 숫자는 자동 무시됩니다.',
             placeholder: '여기에 JSON 또는 YML 데이터를 복사해서 붙여넣으세요...',
             btnCancel: '취소',
-            btnSave: '저장 (IndexedDB)',
+            btnSave: '저장',
             confirmClear: '저장된 번역 데이터를 모두 삭제하시겠습니까?',
             alertCleared: '데이터가 모두 비워졌습니다.',
             alertNoData: '입력된 데이터가 없습니다.',
             alertParseError: '파싱된 데이터가 없습니다. 형식을 확인해주세요.',
             alertSaved: (count) => `총 ${count}개의 번역 데이터가 성공적으로 저장되었습니다.`,
-            dbNotInit: '데이터베이스가 초기화되지 않았습니다. 잠시 후 다시 시도하거나 스크립트 설정을 확인해주세요.'
+            dbError: '오류: 번역 데이터 저장소를 열 수 없습니다. 스크립트가 정상적으로 동작하지 않을 수 있습니다.',
+            dbNotInit: '데이터 저장소가 초기화되지 않았습니다. 잠시 후 다시 시도하거나 스크립트 설정을 확인해주세요.'
         },
         en: {
             btnLoad: '📂 Load Data',
@@ -42,13 +43,14 @@
             modalDesc: 'Language declarations like l_english or numbers like :0 in YML files are automatically ignored.',
             placeholder: 'Paste JSON or YML data here...',
             btnCancel: 'Cancel',
-            btnSave: 'Save (IndexedDB)',
+            btnSave: 'Save',
             confirmClear: 'Are you sure you want to delete all saved translation data?',
             alertCleared: 'All data has been cleared.',
             alertNoData: 'No data entered.',
             alertParseError: 'No data parsed. Please check the format.',
             alertSaved: (count) => `Successfully saved ${count} translation items.`,
-            dbNotInit: 'Database not initialized. Please try again later or check script settings.'
+            dbError: 'Error: Cannot open translation data storage. The script may not work correctly.',
+            dbNotInit: 'Data storage not initialized. Please try again later or check script settings.'
         }
     };
     const t = i18n[userLang]; // 감지된 언어 텍스트 세트 할당
@@ -62,7 +64,7 @@
     const request = indexedDB.open("HOI4_TranslationDB", 1);
     request.onerror = (e) => {
         console.error("IndexedDB error:", e.target.error);
-        alert("오류: 번역 데이터베이스를 열 수 없습니다. 스크립트가 정상적으로 동작하지 않을 수 있습니다.");
+        alert(t.dbError);
     };
     request.onupgradeneeded = (e) => {
         const dbInstance = e.target.result;
@@ -162,7 +164,9 @@
     // 4. 이벤트 리스너 설정
     btnTogglePanel.onclick = () => {
         panel.classList.toggle('collapsed');
-        btnTogglePanel.innerText = panel.classList.contains('collapsed') ? t.expand : t.collapse;
+        const isCollapsed = panel.classList.contains('collapsed');
+        btnTogglePanel.innerText = isCollapsed ? t.expand : t.collapse;
+        panel.style.background = isCollapsed ? 'rgba(44, 62, 80, 0.8)' : '#2c3e50';
     };
 
     btnLoad.onclick = () => modal.style.display = 'flex';
@@ -198,7 +202,7 @@
                 parsedData.push({ key: key.trim(), value: value });
             }
         } catch (e) {
-            const lines = text.split('\\n');
+            const lines = text.split('\n');
             const ymlRegex = /^\s*([\w\-\.]+)(?:\:\d*)?\s*"(.*)"/;
 
             lines.forEach(line => {
