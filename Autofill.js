@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Paratranz HOI4 Auto-Filler
 // @namespace    http://tampermonkey.net/
-// @version      1.8.1
+// @version      1.8.2
 // @downloadURL  https://raw.githubusercontent.com/Logite-c/Paratranz_AutoFill.js/refs/heads/main/Autofill.js
 // @updateURL    https://raw.githubusercontent.com/Logite-c/Paratranz_AutoFill.js/refs/heads/main/Autofill.js
 // @description  Paratranz에서 HOI4 번역 시 사전 번역 데이터를 자동 입력합니다. (상하 접기 + 다국어 자동 감지 + 안정성 및 유지보수성 개선)
@@ -23,7 +23,7 @@
             collapse: '▲ 메뉴 접기',
             expand: '▼ 메뉴 펴기',
             modalTitle: '데이터 불러오기 (JSON / YML)',
-            modalDesc: 'YML 파일의 l_english 같은 언어 선언부나 :0 등의 숫자는 자동 무시됩니다.',
+            modalDesc: 'YML 파일의 언어 선언부(예: l_english), 숫자(:0), 주석(#) 등은 자동 무시됩니다.',
             placeholder: '여기에 JSON 또는 YML 데이터를 복사해서 붙여넣으세요...',
             btnCancel: '취소',
             btnSave: '저장',
@@ -42,7 +42,7 @@
             collapse: '▲ Collapse Menu',
             expand: '▼ Expand Menu',
             modalTitle: 'Load Data (JSON / YML)',
-            modalDesc: 'Language declarations like l_english or numbers like :0 in YML files are automatically ignored.',
+            modalDesc: 'Language declarations (e.g., l_english), numbers (:0), and comments (#) in YML files are automatically ignored.',
             placeholder: 'Paste JSON or YML data here...',
             btnCancel: 'Cancel',
             btnSave: 'Save',
