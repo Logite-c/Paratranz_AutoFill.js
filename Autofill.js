@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Paratranz HOI4 Auto-Filler
 // @namespace    http://tampermonkey.net/
-// @version      1.8
+// @version      1.8.1
 // @downloadURL  https://raw.githubusercontent.com/Logite-c/Paratranz_AutoFill.js/refs/heads/main/Autofill.js
 // @updateURL    https://raw.githubusercontent.com/Logite-c/Paratranz_AutoFill.js/refs/heads/main/Autofill.js
 // @description  Paratranz에서 HOI4 번역 시 사전 번역 데이터를 자동 입력합니다. (상하 접기 + 다국어 자동 감지 + 안정성 및 유지보수성 개선)
@@ -138,7 +138,7 @@
     btnTogglePanel.innerText = t.collapse;
     btnTogglePanel.style.cssText = `
         width: 100%; text-align: center; padding: 4px 0; cursor: pointer;
-        background: rgba(26, 37, 47, 0.5); color: #bdc3c7; font-size: 11px; font-weight: bold;
+        background: rgba(26, 37, 47, 0.2); color: #bdc3c7; font-size: 11px; font-weight: bold;
         letter-spacing: 1px; user-select: none; border-radius: 0 0 8px 8px;
     `;
 
