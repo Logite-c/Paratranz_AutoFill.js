@@ -171,8 +171,8 @@
         panel.style.background = isCollapsed ? 'rgba(44, 62, 80, 0.8)' : '#2c3e50';
     };
 
-    btnLoad.onclick = () => modal.style.display = 'flex';
-    document.getElementById('btnCancel').onclick = () => modal.style.display = 'none';
+    btnLoad.onclick = () => { modal.style.display = 'flex'; };
+    document.getElementById('btnCancel').onclick = () => { modal.style.display = 'none'; };
 
     toggleAutoFill.onchange = (e) => {
         isAutoFillOn = e.target.checked;
