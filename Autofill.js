@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name         Paratranz HOI4 Auto-Filler
 // @namespace    http://tampermonkey.net/
-// @version      1.9
+// @version      1.10
 // @downloadURL  https://raw.githubusercontent.com/Logite-c/Paratranz_AutoFill.js/refs/heads/main/Autofill.js
 // @updateURL    https://raw.githubusercontent.com/Logite-c/Paratranz_AutoFill.js/refs/heads/main/Autofill.js
-// @description  Paratranz에서 HOI4 번역 시 사전 번역 데이터를 자동 입력합니다. (상하 접기 + 다국어 자동 감지 + 안정성 및 유지보수성 개선)
+// @description  Paratranz에서 HOI4 번역 시 사전 번역 데이터를 자동 입력합니다. (변경 사항: YML 파싱 개선)
 // @author       Logite_ With contributions from Gemini, Copilot, etc.
 // @match        https://paratranz.cn/projects/*
 // @grant        none
@@ -206,15 +206,20 @@
                 parsedData.push({ key: key.trim(), value: value });
             }
         } catch (e) {
-            const lines = text.split('\n');
-            const ymlRegex = /^\s*([\w\-\.]+)(?:\:\d*)?\s*"(.*)"/;
+            // Improved YML parsing to handle multi-line values and escaped quotes
+            let ymlText = text
+                .replace(/^\s*l_\w+:/gm, '') // Remove language declarations (e.g., l_english:)
+                .replace(/^\s*#.*$/gm, ''); // Remove full-line comments
 
-            lines.forEach(line => {
-                const match = line.match(ymlRegex);
-                if (match) {
-                    parsedData.push({ key: match[1].trim(), value: match[2] });
+            const ymlRegex = /^\s*([\w.-]+)\s*:\d*\s*"((?:\\.|[^"\\])*)"/gm;
+            let match;
+            while ((match = ymlRegex.exec(ymlText)) !== null) {
+                if (match[1] && typeof match[2] !== 'undefined') {
+                    // The regex correctly handles escaped quotes, so we just need to unescape them.
+                    const finalValue = match[2].replace(/\\"/g, '"');
+                    parsedData.push({ key: match[1].trim(), value: finalValue });
                 }
-            });
+            }
         }
 
         if (parsedData.length === 0) {
