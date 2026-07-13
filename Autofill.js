@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name         Paratranz HOI4 Auto-Filler
 // @namespace    http://tampermonkey.net/
-// @version      1.10
+// @version      1.11
 // @downloadURL  https://raw.githubusercontent.com/Logite-c/Paratranz_AutoFill.js/refs/heads/main/Autofill.js
 // @updateURL    https://raw.githubusercontent.com/Logite-c/Paratranz_AutoFill.js/refs/heads/main/Autofill.js
-// @description  Paratranz에서 HOI4 번역 시 사전 번역 데이터를 자동 입력합니다. (변경 사항: YML 파싱 개선)
+// @description  Paratranz에서 HOI4 번역 시 사전 번역 데이터를 자동 입력합니다. (토스트 알림, 수동입력 단축키 추가)
 // @author       Logite_ With contributions from Gemini, Copilot, etc.
 // @match        https://paratranz.cn/projects/*
 // @grant        none
@@ -33,7 +33,11 @@
             alertParseError: '파싱된 데이터가 없습니다. 형식을 확인해주세요.',
             alertSaved: (count) => `총 ${count}개의 번역 데이터가 성공적으로 저장되었습니다.`,
             dbError: '오류: 번역 데이터 저장소를 열 수 없습니다. 스크립트가 정상적으로 동작하지 않을 수 있습니다.',
-            dbNotInit: '데이터 저장소가 초기화되지 않았습니다. 잠시 후 다시 시도하거나 스크립트 설정을 확인해주세요.'
+            dbNotInit: '데이터 저장소가 초기화되지 않았습니다. 잠시 후 다시 시도하거나 스크립트 설정을 확인해주세요.',
+            toastManualSuccess: (key) => `수동으로 ${key} 번역을 불러왔습니다.`,
+            toastManualFail: (key) => `자동채우기 데이터에 ${key} 키가 없습니다.`,
+            toastAutoSuccess: (key) => `자동으로 ${key} 번역을 채웠습니다.`,
+            toastAutoFail: (key) => `자동채우기 데이터에 ${key} 키가 없어 불러오지 못했습니다.`,
         },
         en: {
             btnLoad: '📂 Load Data',
@@ -52,7 +56,11 @@
             alertParseError: 'No data parsed. Please check the format.',
             alertSaved: (count) => `Successfully saved ${count} translation items.`,
             dbError: 'Error: Cannot open translation data storage. The script may not work correctly.',
-            dbNotInit: 'Data storage not initialized. Please try again later or check script settings.'
+            dbNotInit: 'Data storage not initialized. Please try again later or check script settings.',
+            toastManualSuccess: (key) => `Manually loaded ${key} translation.`,
+            toastManualFail: (key) => `Key ${key} not found in autofill data.`,
+            toastAutoSuccess: (key) => `Automatically filled ${key} translation.`,
+            toastAutoFail: (key) => `Could not load ${key} translation, key not found.`
         }
     };
     const t = i18n[userLang]; // 감지된 언어 텍스트 세트 할당
@@ -100,6 +108,27 @@
             padding: 0px 20px;
             overflow: hidden;
         }
+        .toast-notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 6px;
+            z-index: 10001;
+            opacity: 0;
+            transition: opacity 0.5s, bottom 0.5s;
+            font-size: 14px;
+        }
+        .toast-notification.show {
+            opacity: 1;
+            bottom: 30px;
+        }
+        .toast-notification.success { background-color: #2ecc71; }
+        .toast-notification.error { background-color: #e74c3c; }
+        .toast-notification.info { background-color: #3498db; }
     `;
     document.head.appendChild(styleSheet);
 
@@ -112,6 +141,30 @@
         box-shadow: 0 4px 6px rgba(0,0,0,0.3); font-family: sans-serif;
         transition: all 0.3s ease; overflow: hidden;
     `;
+
+    // Create a function for showing toast notifications
+    function showToast(message, type = 'info', duration = 3000) {
+        const toast = document.createElement('div');
+        toast.className = `toast-notification ${type}`;
+        toast.innerText = message;
+        document.body.appendChild(toast);
+
+        // Show toast
+        setTimeout(() => {
+            toast.classList.add('show');
+        }, 100); // Short delay to allow CSS transition
+
+        // Hide toast
+        setTimeout(() => {
+            toast.classList.remove('show');
+            // Remove from DOM after transition
+            setTimeout(() => {
+                if (document.body.contains(toast)) {
+                    document.body.removeChild(toast);
+                }
+            }, 500);
+        }, duration);
+    }
 
     const buttonGroup = document.createElement('div');
     buttonGroup.classList.add('pt-button-group'); // CSS 클래스 추가
@@ -240,46 +293,85 @@
         tx.onerror = (e) => console.error("Transaction error on save:", e.target.error);
     };
 
-    // 6. 핵심 로직: Paratranz 화면 감지 및 자동 입력 (MutationObserver 사용)
-    const handleTranslation = () => {
-        if (!isAutoFillOn || !db) return;
+    // 6. 핵심 로직: DB에서 데이터 찾기
+    const findInDB = (key) => {
+        return new Promise((resolve, reject) => {
+            if (!db) return reject(new Error(t.dbNotInit));
+            const tx = db.transaction("translations", "readonly");
+            const store = tx.objectStore("translations");
+            const getRequest = store.get(key);
+            getRequest.onerror = (e) => reject(e.target.error);
+            getRequest.onsuccess = () => resolve(getRequest.result ? getRequest.result.value : null);
+            tx.onerror = (e) => reject(e.target.error);
+        });
+    };
 
+    // 7. 핵심 로직: 수동 및 자동 채우기
+    const manualFill = async () => {
+        const textarea = document.querySelector('textarea.translation.form-control');
+        const keyElement = document.querySelector('.notranslate.text-monospace');
+        if (!keyElement || !textarea) return;
+
+        const currentKey = keyElement.innerText.trim().split(':')[0].trim();
+        if (!currentKey) return;
+
+        try {
+            const value = await findInDB(currentKey);
+            if (value !== null) {
+                textarea.value = value;
+                textarea.dispatchEvent(new Event('input', { bubbles: true }));
+                showToast(t.toastManualSuccess(currentKey), 'success');
+            } else {
+                showToast(t.toastManualFail(currentKey), 'error');
+            }
+        } catch (error) {
+            showToast(error.message, 'error');
+        }
+    };
+
+    const handleTranslation = async () => {
+        if (!isAutoFillOn || !db) return;
         const keyElement = document.querySelector('.notranslate.text-monospace');
         const textarea = document.querySelector('textarea.translation.form-control');
 
         if (keyElement && textarea) {
-            const rawText = keyElement.innerText.trim();
-            const currentKey = rawText.split(':')[0].trim();
+            const currentKey = keyElement.innerText.trim().split(':')[0].trim();
 
             if (currentKey && currentKey !== lastCheckedKey) {
                 lastCheckedKey = currentKey;
 
-                const tx = db.transaction("translations", "readonly");
-                const store = tx.objectStore("translations");
-                const getRequest = store.get(currentKey);
-
-                getRequest.onerror = (e) => console.error("Read request error:", e.target.error);
-                getRequest.onsuccess = () => {
-                    if (getRequest.result && textarea.value === "") {
-                        textarea.value = getRequest.result.value;
-                        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+                try {
+                    const value = await findInDB(currentKey);
+                    if (value !== null) {
+                        // Key FOUND. Only fill if textarea is empty.
+                        if (textarea.value === "") {
+                            textarea.value = value;
+                            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+                            showToast(t.toastAutoSuccess(currentKey), 'success');
+                        }
+                    } else {
+                        // Key NOT found. Show failure toast regardless of textarea content.
+                        showToast(t.toastAutoFail(currentKey), 'info');
                     }
-                };
-                tx.onerror = (e) => console.error("Transaction error on read:", e.target.error);
+                } catch(error) {
+                     console.error("Autofill DB Error:", error);
+                }
             }
         } else {
             lastCheckedKey = "";
         }
     };
 
-    // 페이지의 변경을 감지하여 번역창이 나타났을 때 핸들러를 호출합니다.
-    const observer = new MutationObserver(handleTranslation);
-
-    // document.body 전체의 자식요소 및 서브트리 변경사항을 감지하도록 설정합니다.
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
+    // Keydown listener for manual fill
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key.toLowerCase() === 'q') {
+            e.preventDefault();
+            manualFill();
+        }
     });
+
+    const observer = new MutationObserver(handleTranslation);
+    observer.observe(document.body, { childList: true, subtree: true });
 
     // 7. 페이지 로드 시 설정 불러오기
     function loadSettings() {
