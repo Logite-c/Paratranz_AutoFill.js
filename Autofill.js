@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Paratranz HOI4 Auto-Filler
 // @namespace    http://tampermonkey.net/
-// @version      2.0
+// @version      2.1
 // @downloadURL  https://raw.githubusercontent.com/Logite-c/Paratranz_AutoFill.js/refs/heads/main/Autofill.js
 // @updateURL    https://raw.githubusercontent.com/Logite-c/Paratranz_AutoFill.js/refs/heads/main/Autofill.js
 // @description  Paratranz에서 HOI4 번역 시 사전 번역 데이터를 자동 입력하고, 현재 페이지의 원문을 JSON으로 추출합니다. (단축키 Alt+E, R, T, Y, Ctrl+Q)
@@ -10,7 +10,7 @@
 // @grant        none
 // ==/UserScript==
 
-(function() {
+(function () {
     'use strict';
 
     // 0. 다국어(i18n) 설정: 브라우저 언어 감지
@@ -333,7 +333,7 @@
     };
 
     btnClear.onclick = () => {
-        if(confirm(t.confirmClear)) {
+        if (confirm(t.confirmClear)) {
             if (!db) { return alert(t.dbNotInit); } // Using i18n
             const tx = db.transaction("translations", "readwrite");
             tx.objectStore("translations").clear();
@@ -377,7 +377,7 @@
             alert(t.alertParseError);
             return;
         }
-        
+
         if (!db) { return alert(t.dbNotInit); } // Using i18n
         const tx = db.transaction("translations", "readwrite");
         const store = tx.objectStore("translations");
@@ -451,8 +451,8 @@
                         // Key NOT found. Show failure toast regardless of textarea content.
                         showToast(t.toastAutoFail(currentKey), 'info');
                     }
-                } catch(error) {
-                     console.error("Autofill DB Error:", error);
+                } catch (error) {
+                    console.error("Autofill DB Error:", error);
                 }
             }
         } else {
