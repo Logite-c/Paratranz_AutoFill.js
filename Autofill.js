@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name         Paratranz HOI4 Auto-Filler
 // @namespace    http://tampermonkey.net/
-// @version      1.11
+// @version      1.21
 // @downloadURL  https://raw.githubusercontent.com/Logite-c/Paratranz_AutoFill.js/refs/heads/main/Autofill.js
 // @updateURL    https://raw.githubusercontent.com/Logite-c/Paratranz_AutoFill.js/refs/heads/main/Autofill.js
-// @description  Paratranz에서 HOI4 번역 시 사전 번역 데이터를 자동 입력합니다. (토스트 알림, 수동입력 단축키 추가)
+// @description  Paratranz에서 HOI4 번역 시 사전 번역 데이터를 자동 입력하고, 현재 페이지의 원문을 JSON으로 추출합니다. (단축키 Alt+E, R, T, Y, Ctrl+Q)
 // @author       Logite_ With contributions from Gemini, Copilot, etc.
 // @match        https://paratranz.cn/projects/*
 // @grant        none
@@ -17,6 +17,7 @@
     const userLang = navigator.language.startsWith('ko') ? 'ko' : 'en';
     const i18n = {
         ko: {
+            btnExtract: '📋 원문 추출',
             btnLoad: '📂 데이터 불러오기',
             autoFill: '자동 채우기',
             btnClear: '🗑️ 데이터 비우기',
@@ -38,8 +39,14 @@
             toastManualFail: (key) => `자동채우기 데이터에 ${key} 키가 없습니다.`,
             toastAutoSuccess: (key) => `자동으로 ${key} 번역을 채웠습니다.`,
             toastAutoFail: (key) => `자동채우기 데이터에 ${key} 키가 없어 불러오지 못했습니다.`,
+            toastExtractSuccess: (count) => `총 ${count}개의 원문(JSON)이 클립보드에 복사되었습니다! (Alt+E)`,
+            toastExtractNone: '추출할 수 있는 원문 데이터가 없습니다. 문자열 목록 페이지인지 확인해주세요.',
+            toastExtractFail: (err) => `클립보드 복사 중 오류가 발생했습니다: ${err}`,
+            toastAutoFillOn: '자동 채우기가 활성화되었습니다. (Alt+T)',
+            toastAutoFillOff: '자동 채우기가 비활성화되었습니다. (Alt+T)',
         },
         en: {
+            btnExtract: '📋 Extract Originals',
             btnLoad: '📂 Load Data',
             autoFill: 'Auto Fill',
             btnClear: '🗑️ Clear Data',
@@ -60,7 +67,12 @@
             toastManualSuccess: (key) => `Manually loaded ${key} translation.`,
             toastManualFail: (key) => `Key ${key} not found in autofill data.`,
             toastAutoSuccess: (key) => `Automatically filled ${key} translation.`,
-            toastAutoFail: (key) => `Could not load ${key} translation, key not found.`
+            toastAutoFail: (key) => `Could not load ${key} translation, key not found.`,
+            toastExtractSuccess: (count) => `Copied ${count} original strings (JSON) to clipboard! (Alt+E)`,
+            toastExtractNone: 'No extractable strings found. Please make sure you are on the strings list page.',
+            toastExtractFail: (err) => `Failed to copy to clipboard: ${err}`,
+            toastAutoFillOn: 'Auto Fill enabled. (Alt+T)',
+            toastAutoFillOff: 'Auto Fill disabled. (Alt+T)',
         }
     };
     const t = i18n[userLang]; // 감지된 언어 텍스트 세트 할당
@@ -170,11 +182,20 @@
     buttonGroup.classList.add('pt-button-group'); // CSS 클래스 추가
     // buttonGroup.style.cssText is removed, styles are now in the <style> block
 
+    const btnExtract = document.createElement('button');
+    btnExtract.innerText = t.btnExtract;
+    btnExtract.title = 'Alt + E';
+    btnExtract.style.cssText = 'padding: 6px 12px; cursor: pointer; border: none; border-radius: 4px; background: #9b59b6; color: white; font-weight: bold; transition: background 0.2s;';
+    btnExtract.onmouseenter = () => { btnExtract.style.background = '#8e44ad'; };
+    btnExtract.onmouseleave = () => { btnExtract.style.background = '#9b59b6'; };
+
     const btnLoad = document.createElement('button');
     btnLoad.innerText = t.btnLoad;
+    btnLoad.title = 'Alt + R';
     btnLoad.style.cssText = 'padding: 6px 12px; cursor: pointer; border: none; border-radius: 4px; background: #3498db; color: white; font-weight: bold;';
 
     const toggleWrapper = document.createElement('label');
+    toggleWrapper.title = 'Alt + T';
     toggleWrapper.style.cssText = 'display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px;';
     const toggleAutoFill = document.createElement('input');
     toggleAutoFill.type = 'checkbox';
@@ -183,9 +204,10 @@
 
     const btnClear = document.createElement('button');
     btnClear.innerText = t.btnClear;
+    btnClear.title = 'Alt + Y';
     btnClear.style.cssText = 'padding: 6px 12px; cursor: pointer; border: none; border-radius: 4px; background: #e74c3c; color: white; font-weight: bold;';
 
-    buttonGroup.append(btnLoad, toggleWrapper, btnClear);
+    buttonGroup.append(btnExtract, btnLoad, toggleWrapper, btnClear);
 
     const btnTogglePanel = document.createElement('div');
     btnTogglePanel.innerText = t.collapse;
@@ -225,13 +247,86 @@
         localStorage.setItem('isPanelCollapsed', isCollapsed);
     };
 
-    btnLoad.onclick = () => { modal.style.display = 'flex'; };
+    // 원문 JSON 추출 로직 (DOM 파싱 -> 2칸 들여쓰기 JSON 생성 -> 클립보드 복사)
+    const extractOriginalsToJson = async () => {
+        const originalDivs = document.querySelectorAll('div.original');
+        const resultDict = {};
+        let count = 0;
+
+        originalDivs.forEach((div) => {
+            const parentRow = div.closest('[title]');
+            if (parentRow) {
+                const titleAttr = parentRow.getAttribute('title');
+                if (titleAttr) {
+                    const key = titleAttr.split(':')[0].trim();
+                    const value = div.textContent;
+                    if (key) {
+                        resultDict[key] = value;
+                        count++;
+                    }
+                }
+            }
+        });
+
+        if (count === 0) {
+            showToast(t.toastExtractNone, 'error');
+            return;
+        }
+
+        const jsonStr = JSON.stringify(resultDict, null, 2);
+
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(jsonStr);
+            } else {
+                const ta = document.createElement('textarea');
+                ta.value = jsonStr;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+            }
+            showToast(t.toastExtractSuccess(count), 'success');
+        } catch (err) {
+            console.error('Clipboard copy error:', err);
+            showToast(t.toastExtractFail(err.message || err), 'error');
+        }
+    };
+
+    btnExtract.onclick = extractOriginalsToJson;
+
+    const toggleLoadModal = () => {
+        if (modal.style.display === 'flex') {
+            modal.style.display = 'none';
+        } else {
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                const ta = document.getElementById('textInput');
+                if (ta) ta.focus();
+            }, 50);
+        }
+    };
+
+    btnLoad.onclick = toggleLoadModal;
     document.getElementById('btnCancel').onclick = () => { modal.style.display = 'none'; };
+
+    const toggleAutoFillState = () => {
+        isAutoFillOn = !isAutoFillOn;
+        toggleAutoFill.checked = isAutoFillOn;
+        localStorage.setItem('isAutoFillOn', isAutoFillOn);
+        if (!isAutoFillOn) lastCheckedKey = "";
+        showToast(isAutoFillOn ? t.toastAutoFillOn : t.toastAutoFillOff, 'info');
+        if (isAutoFillOn) handleTranslation();
+    };
 
     toggleAutoFill.onchange = (e) => {
         isAutoFillOn = e.target.checked;
         localStorage.setItem('isAutoFillOn', isAutoFillOn);
         if (!isAutoFillOn) lastCheckedKey = "";
+        showToast(isAutoFillOn ? t.toastAutoFillOn : t.toastAutoFillOff, 'info');
+        if (isAutoFillOn) handleTranslation();
     };
 
     btnClear.onclick = () => {
@@ -362,11 +457,23 @@
         }
     };
 
-    // Keydown listener for manual fill
+    // Keydown listener for shortcuts (Ctrl+Q, Alt+E, Alt+R, Alt+T, Alt+Y)
     document.addEventListener('keydown', (e) => {
         if (e.ctrlKey && e.key.toLowerCase() === 'q') {
             e.preventDefault();
             manualFill();
+        } else if (e.altKey && e.key.toLowerCase() === 'e') {
+            e.preventDefault();
+            extractOriginalsToJson();
+        } else if (e.altKey && e.key.toLowerCase() === 'r') {
+            e.preventDefault();
+            toggleLoadModal();
+        } else if (e.altKey && e.key.toLowerCase() === 't') {
+            e.preventDefault();
+            toggleAutoFillState();
+        } else if (e.altKey && e.key.toLowerCase() === 'y') {
+            e.preventDefault();
+            btnClear.click();
         }
     });
 

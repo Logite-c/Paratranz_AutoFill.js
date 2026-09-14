@@ -24,13 +24,20 @@ Using an extension like Tampermonkey (for Chrome, Edge, Firefox, etc.) allows yo
 
 Once the script is running, a control panel will appear at the top of the screen.
 
-*   **Load Data:**
-    *   Click the button to open a window where you can paste your pre-prepared translation data (JSON or YML format).
+*   **Extract Originals (Alt+E):**
+    *   Click the button or press `Alt+E` on the string list page to extract all strings into JSON format (`{ "key": "original_text" }`) and immediately copy them to your clipboard.
+    *   You can easily paste this JSON into LLMs (e.g., ChatGPT, Claude) for batch translation, then import the translated results back using **Load Data**.
+*   **Load Data (Alt+R):**
+    *   Click the button or press `Alt+R` to toggle a window where you can paste your pre-prepared translation data (JSON or YML format).
     *   Clicking 'Save' will store the data in your browser, where it will persist even if you close the window.
-*   **Auto Fill:**
-    *   If this option is enabled, the translation field will automatically be filled if a key matching the original text of the item to be translated exists in the previously loaded data.
-*   **Clear Data:**
-    *   Deletes all stored translation data.
+*   **Auto Fill (Alt+T):**
+    *   Enable or disable auto-fill by toggling the checkbox or pressing `Alt+T`.
+    *   When enabled, the translation field will automatically be filled if a key matching the original text exists in the stored data.
+*   **Manual Fill (Ctrl+Q):**
+    *   Press `Ctrl+Q` while in the translation field to manually fill in the translation data for the current key.
+    *   A toast notification will appear at the bottom indicating success or failure.
+*   **Clear Data (Alt+Y):**
+    *   Click the button or press `Alt+Y` to delete all stored translation data (confirmation prompt included).
 *   **Collapse/Expand Menu:**
     *   You can collapse or expand the control panel to use the screen more effectively.
 
@@ -58,18 +65,22 @@ Tampermonkey (Chrome, Edge, Firefox 등) 같은 확장 프로그램을 사용하
 
 스크립트가 실행되면 화면 상단에 제어판이 나타납니다.
 
-*   **데이터 불러오기:**
-    *   버튼을 클릭해 미리 준비한 번역 데이터(JSON 또는 YML 형식)를 붙여넣는 창을 엽니다.
+*   **원문 추출 (Alt+E):**
+    *   문자열 목록 페이지에서 버튼을 클릭하거나 `Alt+E`를 누르면, 현재 페이지의 모든 항목에서 Key와 원문을 추출하여 JSON 형식(`{ "key": "원문" }`)으로 클립보드에 즉시 복사합니다.
+    *   복사된 JSON을 ChatGPT, Claude 등 외부 LLM에 전달하여 일괄 번역한 뒤, 번역된 결과를 '데이터 불러오기'에 등록하면 간편하게 자동 완성을 적용할 수 있습니다.
+*   **데이터 불러오기 (Alt+R):**
+    *   버튼을 클릭하거나 `Alt+R`을 누르면 미리 준비한 번역 데이터(JSON 또는 YML 형식)를 붙여넣는 팝업창을 열고 닫을 수 있습니다.
     *   '저장'을 누르면 데이터가 브라우저에 저장되어, 창을 닫아도 유지됩니다.
-*   **자동 완성:**
-    *   이 옵션을 활성화하면, 번역할 항목의 원문과 일치하는 키가 이전에 불러온 데이터에 있을 경우 번역 칸을 자동으로 채워줍니다.
-*   **데이터 비우기:**
-    *   저장된 모든 번역 데이터를 삭제합니다.
-*   **메뉴 접기/펴기:**
-    *   제어판을 접거나 펴서 화면을 넓게 사용할 수 있습니다.
+*   **자동 완성 (Alt+T):**
+    *   체크박스를 클릭하거나 `Alt+T`를 눌러 자동 채우기를 켜고 끌 수 있습니다 (토스트 알림 표시).
+    *   활성화된 상태에서 번역 창에 진입하면 일치하는 키의 번역 데이터를 번역 칸에 자동으로 채워줍니다.
 *   **수동 채우기 (Ctrl+Q):**
     *   번역 칸에서 `Ctrl+Q`를 누르면 현재 키에 해당하는 번역 데이터를 수동으로 불러옵니다.
     *   번역 데이터를 성공적으로 불러오거나, 불러오지 못했을 경우 화면 하단에 토스트 알림이 표시됩니다.
+*   **데이터 비우기 (Alt+Y):**
+    *   버튼을 클릭하거나 `Alt+Y`를 눌러 저장된 모든 번역 데이터를 삭제합니다 (삭제 전 확인창 표시).
+*   **메뉴 접기/펴기:**
+    *   제어판을 접거나 펴서 화면을 넓게 사용할 수 있습니다.
 
 ---
 
