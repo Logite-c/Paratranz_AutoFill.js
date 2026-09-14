@@ -44,6 +44,7 @@
             toastExtractFail: (err) => `클립보드 복사 중 오류가 발생했습니다: ${err}`,
             toastAutoFillOn: '자동 채우기가 활성화되었습니다. (Alt+T)',
             toastAutoFillOff: '자동 채우기가 비활성화되었습니다. (Alt+T)',
+            tooltipAutoFill: 'Alt + T (수동 불러오기: Ctrl + Q)',
         },
         en: {
             btnExtract: '📋 Extract Originals',
@@ -73,6 +74,7 @@
             toastExtractFail: (err) => `Failed to copy to clipboard: ${err}`,
             toastAutoFillOn: 'Auto Fill enabled. (Alt+T)',
             toastAutoFillOff: 'Auto Fill disabled. (Alt+T)',
+            tooltipAutoFill: 'Alt + T (Manual Fill: Ctrl + Q)',
         }
     };
     const t = i18n[userLang]; // 감지된 언어 텍스트 세트 할당
@@ -195,10 +197,11 @@
     btnLoad.style.cssText = 'padding: 6px 12px; cursor: pointer; border: none; border-radius: 4px; background: #3498db; color: white; font-weight: bold;';
 
     const toggleWrapper = document.createElement('label');
-    toggleWrapper.title = 'Alt + T';
+    toggleWrapper.title = t.tooltipAutoFill;
     toggleWrapper.style.cssText = 'display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px;';
     const toggleAutoFill = document.createElement('input');
     toggleAutoFill.type = 'checkbox';
+    toggleAutoFill.title = t.tooltipAutoFill;
     toggleAutoFill.style.cursor = 'pointer';
     toggleWrapper.append(toggleAutoFill, t.autoFill);
 
